@@ -11,19 +11,25 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 20
-      - run: npm install  # Updated to use npm install
+      - run: npm install
       - run: npm test
-      - name: Build Docker image
-        run: docker build -t my-app:${{ github.sha }} .
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "ibkwilly" --password-stdin
+      - name: Build and Push Docker image
+        run: |
+          docker build -t ibkwilly/my-app:${{ github.sha }} .
+          docker push ibkwilly/my-app:${{ github.sha }}
 
   publish-dockerhub:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "ibkwilly" --password-stdin
-      - name: Push to Docker Hub
+      - name: Pull and Retag Docker image
         run: |
-          docker tag my-app:${{ github.sha }} ibkwilly/my-app:latest
-          docker push ibkwilly/my-app:latest
+          docker pull ibkwilly/my-app:${{ github.sha }}
+          docker tag ibkwilly/my-app:${{ github.sha }} ibkwilly/my-app:latest
+      - name: Push to Docker Hub
+        run: docker push ibkwilly/my-app:latest
